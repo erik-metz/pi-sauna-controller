@@ -82,6 +82,6 @@ Bei MQTT-Ausfall läuft eine bereits gestartete Sitzung bis zum bestehenden loka
 
 ## Anschluss und Updates
 
-Siehe [GPIO-Belegung und elektrische Schnittstellen](docs/ANSCHLUSS.md), [Updatekonzept](docs/UPDATES.md) und [ausführlicher Implementierungsplan](IMPLEMENTIERUNGSPLAN.md).
+Siehe [Anschlussplan mit Verdrahtungsdiagramm](docs/ANSCHLUSS.md), [Updatekonzept](docs/UPDATES.md) und [ausführlicher Implementierungsplan](IMPLEMENTIERUNGSPLAN.md).
 
 Ein Softwaretest bestätigt keine elektrische Sicherheit. Ein unabhängiger STB mit eigenem Fühler, geeignete Hardwareüberwachung/Freigabe und fachgerecht ausgelegte Leistungspfade bleiben erforderlich. Ein gehängter Prozess kann GPIOs aktiv lassen; der externe Watchdog muss deshalb unabhängig abschalten können. Ein systemd-Neustart allein reicht dafür nicht.

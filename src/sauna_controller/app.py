@@ -14,12 +14,25 @@ from queue import Empty, Queue
 
 from .config import load
 from .core import Controller, Inputs, Reading
-from .hardware import GPIO, Simulation, sensor_worker
+from .hardware import GPIO, Simulation, sensor_worker, dew_point_c
 from .mqtt import MQTT
 from .storage import FaultStore
 from .environment import load_env_file
 
 log = logging.getLogger(__name__)
+
+
+def add_aht21_state(state, channels, samples, now, max_age):
+    for index, _channel in enumerate(channels, start=1):
+        key = f"aht21_{index}"
+        sample = samples.get(key, Reading(None, now, "not_yet_measured"))
+        valid = sample.valid(now, max_age + 2) and sample.humidity is not None
+        state[key + "_valid"] = valid
+        state[key + "_temperature"] = round(sample.temperature, 2) if valid else None
+        state[key + "_humidity"] = round(sample.humidity, 2) if valid else None
+        state[key + "_dew_point"] = round(dew_point_c(sample.temperature, sample.humidity), 2) if valid and sample.humidity > 0 else None
+        state[key + "_error"] = sample.error
+    return state
 
 
 def notify(message):
@@ -81,6 +94,7 @@ def run(cfg, state_dir, socket_path, maintenance_file="/var/lib/sauna-updater/ma
         core.maintenance = core.update_pending = True
         core.stop(now)
     pt = sht = Reading(None, now, "not_yet_measured")
+    aht = {}
     context = mp.get_context("spawn")
     samples = context.Queue(maxsize=2)
     simulation = Simulation(now) if cfg.mode == "simulation" else None
@@ -125,6 +139,7 @@ def run(cfg, state_dir, socket_path, maintenance_file="/var/lib/sauna-updater/ma
                     try:
                         reading = samples.get_nowait()
                         pt, sht = reading["pt"], reading["sht"]
+                        aht = reading.get("aht", {})
                     except Empty:
                         break
                 inputs = outputs.read(pt, sht) if outputs else Inputs(pt, sht, None, None, None, None)
@@ -162,6 +177,7 @@ def run(cfg, state_dir, socket_path, maintenance_file="/var/lib/sauna-updater/ma
                         core.reset(inputs, now)
                         button_consumed = True
             state = core.state(inputs, now)
+            add_aht21_state(state, cfg.aht21_channels, aht, now, cfg.sensor_max_age)
             serve_local(server, core, inputs, now, state)
             if initialized:
                 core.tick(inputs, now)
@@ -170,6 +186,7 @@ def run(cfg, state_dir, socket_path, maintenance_file="/var/lib/sauna-updater/ma
                                                and core.healthy(inputs, now)) else False
                 outputs.apply(core.heating, core.light, heartbeat)
             state = core.state(inputs, now)
+            add_aht21_state(state, cfg.aht21_channels, aht, now, cfg.sensor_max_age)
             serialized = json.dumps(state, sort_keys=True, allow_nan=False)
             # Limit MQTT publication to 1 Hz; publish immediately enough for HA plus every 5s.
             changed = serialized != last_serialized

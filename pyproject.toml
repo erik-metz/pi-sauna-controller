@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sauna-controller"
-version = "0.2.0"
+version = "0.3.0"
 description = "Local sauna controller with fail-off operation and Home Assistant MQTT discovery"
 requires-python = ">=3.11"
 dependencies = ["paho-mqtt>=2.0,<3"]

@@ -94,9 +94,55 @@ class SHT41:
         self.bus.close()
 
 
+def dew_point_c(temperature, humidity):
+    """Magnus approximation for ordinary indoor air temperatures."""
+    if not math.isfinite(temperature) or not math.isfinite(humidity) or not 0 < humidity <= 100:
+        raise ValueError("Invalid temperature/humidity for dew point")
+    a, b = 17.62, 243.12
+    gamma = math.log(humidity / 100) + a * temperature / (b + temperature)
+    return b * gamma / (a - gamma)
+
+
+class AHT21Array:
+    """Read fixed-address AHT21 sensors one at a time through TCA9548A channels."""
+    ADDRESS = 0x38
+
+    def __init__(self, cfg):
+        from smbus2 import SMBus, i2c_msg
+        self.bus = SMBus(cfg.i2c_bus)
+        self.message = i2c_msg
+        self.mux_address = cfg.aht21_mux_address
+
+    def measure(self, channel):
+        self.bus.i2c_rdwr(self.message.write(self.mux_address, [1 << channel]))
+        time.sleep(0.002)
+        status = self.message.read(self.ADDRESS, 1)
+        self.bus.i2c_rdwr(status)
+        if not (list(status)[0] & 0x08):
+            self.bus.i2c_rdwr(self.message.write(self.ADDRESS, [0xBE, 0x08, 0x00]))
+            time.sleep(0.010)
+        self.bus.i2c_rdwr(self.message.write(self.ADDRESS, [0xAC, 0x33, 0x00]))
+        time.sleep(0.085)
+        msg = self.message.read(self.ADDRESS, 6)
+        self.bus.i2c_rdwr(msg)
+        data = list(msg)
+        if len(data) != 6 or data[0] & 0x80:
+            raise OSError("AHT21 measurement busy or invalid")
+        raw_h = (data[1] << 12) | (data[2] << 4) | (data[3] >> 4)
+        raw_t = ((data[3] & 0x0F) << 16) | (data[4] << 8) | data[5]
+        humidity = max(0.0, min(100.0, raw_h * 100.0 / (1 << 20)))
+        temperature = raw_t * 200.0 / (1 << 20) - 50.0
+        if not -40 <= temperature <= 120:
+            raise OSError("AHT21 temperature outside sensor limits")
+        return Reading(temperature, time.monotonic(), humidity=humidity)
+
+    def close(self):
+        self.bus.close()
+
+
 def sensor_worker(cfg, queue):
     """Separate process: a stuck kernel bus operation cannot freeze the controller."""
-    drivers = {"pt": None, "sht": None}
+    drivers = {"pt": None, "sht": None, "aht": None}
     types = {"pt": MAX31865, "sht": SHT41}
     while True:
         readings = {}
@@ -113,6 +159,27 @@ def sensor_worker(cfg, queue):
                     except Exception:
                         pass
                     drivers[key] = None
+        if cfg.aht21_channels:
+            try:
+                if drivers["aht"] is None:
+                    drivers["aht"] = AHT21Array(cfg)
+                readings["aht"] = {}
+                for index, channel in enumerate(cfg.aht21_channels, start=1):
+                    try:
+                        readings["aht"][f"aht21_{index}"] = drivers["aht"].measure(channel)
+                    except Exception as exc:
+                        readings["aht"][f"aht21_{index}"] = Reading(
+                            None, time.monotonic(), error=f"{type(exc).__name__}: {exc}")
+            except Exception as exc:
+                readings["aht"] = {f"aht21_{index}": Reading(
+                    None, time.monotonic(), error=f"{type(exc).__name__}: {exc}")
+                    for index, _ in enumerate(cfg.aht21_channels, start=1)}
+                if drivers["aht"] is not None:
+                    try:
+                        drivers["aht"].close()
+                    except Exception:
+                        pass
+                    drivers["aht"] = None
         try:
             queue.put_nowait(readings)
         except Full:

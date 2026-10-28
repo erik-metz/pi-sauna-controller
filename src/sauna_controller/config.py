@@ -33,6 +33,8 @@ class Config:
     spi_bus: int = 0
     spi_device: int = 0
     i2c_bus: int = 1
+    aht21_channels: list = field(default_factory=list)
+    aht21_mux_address: int = 0x70
     relay_active_high: bool = True
     host: str = "homeassistant.local"
     port: int = 1883
@@ -98,6 +100,12 @@ class Config:
                 raise ValueError("Expected integer: " + key)
         if self.spi_bus != 0 or self.spi_device != 0 or self.i2c_bus != 1 or self.i2c_address not in (0x44, 0x45, 0x46):
             raise ValueError("Bus configuration differs from the documented pin assignment")
+        if (not isinstance(self.aht21_channels, list) or len(self.aht21_channels) > 8
+                or any(type(ch) is not int or not 0 <= ch <= 7 for ch in self.aht21_channels)
+                or len(set(self.aht21_channels)) != len(self.aht21_channels)):
+            raise ValueError("AHT21 channels must be unique TCA9548A channels from 0 to 7")
+        if type(self.aht21_mux_address) is not int or not 0x70 <= self.aht21_mux_address <= 0x77:
+            raise ValueError("TCA9548A address must be from 0x70 to 0x77")
         expected = {"k1", "k2", "feedback1", "feedback2", "light", "heartbeat", "safety", "arm", "door"}
         if set(self.pins) != expected or len(set(self.pins.values())) != len(expected):
             raise ValueError("GPIO assignments must be complete and unique")

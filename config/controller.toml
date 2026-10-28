@@ -25,6 +25,9 @@ rtd_reference = 430.0
 spi_bus = 0
 spi_device = 0
 i2c_bus = 1
+# Optional AHT21 sensors behind a TCA9548A. Select one channel per sensor.
+aht21_channels = []
+aht21_mux_address = 112
 i2c_address = 68
 relay_active_high = true
 

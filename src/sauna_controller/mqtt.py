@@ -54,6 +54,19 @@ def discoveries(cfg):
             template = "{{ value_json." + key + " if value_json." + validity + " else None }}"
         add("sensor", key, {"name": name, "unit_of_measurement": unit,
                            "device_class": cls, "value_template": template, "expire_after": 15})
+    for index, _channel in enumerate(cfg.aht21_channels, start=1):
+        prefix = f"aht21_{index}"
+        for suffix, name, unit, device_class in (
+            ("temperature", f"Wandfühler {index} Temperatur", "°C", "temperature"),
+            ("humidity", f"Wandfühler {index} Feuchte", "%", "humidity"),
+            ("dew_point", f"Wandfühler {index} Taupunkt", "°C", "temperature"),
+        ):
+            add("sensor", prefix + "_" + suffix, {
+                "name": name, "unit_of_measurement": unit, "device_class": device_class,
+                "value_template": "{{ value_json." + prefix + "_" + suffix +
+                                  " if value_json." + prefix + "_valid else None }}",
+                "expire_after": 20,
+            })
     for key, name in (("phase", "Sitzungsphase"), ("fault_code", "Fehlercode"),
                       ("last_rejection", "Letzte Befehlsablehnung"), ("operating_mode", "Betriebsart"),
                       ("warning", "Warnung")):
