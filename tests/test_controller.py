@@ -199,6 +199,27 @@ class ConfigAndHardwareTests(unittest.TestCase):
         for path in Path("config").glob("*.toml"):
             load(path)
 
+    def test_old_pin_config_gets_new_fail_off_outputs(self):
+        old_pins = """[pins]
+k1 = 17
+k2 = 27
+feedback1 = 22
+feedback2 = 23
+light = 18
+heartbeat = 24
+safety = 25
+arm = 5
+door = 6
+"""
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "controller.toml"
+            path.write_text(old_pins)
+            cfg = load(path)
+        self.assertEqual(cfg.pins["feedback2"], 26)
+        self.assertEqual(cfg.pins["aufguss_valve"], 14)
+        self.assertEqual(cfg.pins["evaporator_fill_valve"], 15)
+        self.assertEqual(cfg.pins["reserve_relay"], 23)
+
     def test_hardware_requires_explicit_commissioning(self):
         with self.assertRaises(ValueError):
             Config(mode="hardware").validate()

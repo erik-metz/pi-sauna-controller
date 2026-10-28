@@ -136,6 +136,17 @@ def load(path):
     allowed = set(Config.__dataclass_fields__)
     if values.keys() - allowed:
         raise ValueError("Unknown config keys: " + ", ".join(values.keys() - allowed))
+    if "pins" in values:
+        configured_pins = values["pins"]
+        if not isinstance(configured_pins, dict):
+            raise ValueError("pins must be a TOML table")
+        pins = Config().pins
+        pins.update(configured_pins)
+        # Older configs used BCM23 for K2 feedback. The new reserve output takes
+        # that pin, so move the expected feedback input to BCM26 during upgrade.
+        if "reserve_relay" not in configured_pins and pins["feedback2"] == 23:
+            pins["feedback2"] = 26
+        values["pins"] = pins
     for env, key, convert in (("MQTT_HOST", "host", str), ("MQTT_PORT", "port", int),
                               ("MQTT_CA_FILE", "ca_file", str)):
         if env in os.environ:
