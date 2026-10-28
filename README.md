@@ -2,7 +2,7 @@
 
 Lokale Python-Steuerung für Raspberry Pi Zero W (ARMv6), mit Home-Assistant-Anbindung per MQTT Discovery.
 
-**Aktueller Stand:** Implementierung und lokale Softwaretests vorhanden. Eine Installation auf dem echten Pi und die Anmeldung am Home-Assistant-MQTT-Broker sind noch nicht bestätigt. Es gibt noch keine Prüfung mit echten Sensoren, Schützen oder Heizlast. Die Konfiguration startet im Überwachungsmodus und initialisiert keine GPIO-Ausgänge.
+**Aktueller Stand:** Implementierung, signierter GitHub-Updater und lokale Softwaretests vorhanden. Installation und MQTT-Anmeldung auf dem Pi sind anhand der Inbetriebnahme zu prüfen. Es gibt noch keine Prüfung mit echten Sensoren, Schützen oder Heizlast. Die Konfiguration startet im Überwachungsmodus und initialisiert keine GPIO-Ausgänge. Der Benutzer übernimmt den GitHub-Push.
 
 Enthalten sind Zweipunktregelung am PT100, Hysterese/Mindestpause, Schützrückmeldungen, monotone Sitzungs- und Aufheizfristen, lokale Temperaturprofile, persistente Fehlerverriegelung, MAX31865-/SHT41-Treiber, ein separater Sensorprozess, ein systemd-Dienst und MQTT Discovery für Klima, Sensoren, Diagnose, Programme und Licht.
 
@@ -48,6 +48,8 @@ Nach Aktivierung prüfen, ob `/dev/spidev0.0` und `/dev/i2c-1` vorhanden sind; f
 
 Der Installer verwendet Distributionspakete und eine virtuelle Python-Umgebung mit Zugriff auf die Systempakete. Er erhält eine vorhandene Konfiguration sowie Zugangsdaten und Fehlerstatus. Der Dienst läuft als installierender Pi-Benutzer, nicht als root. Das ist beim Erstaufbau normalerweise `alpha`; dieser Benutzer benötigt Zugriff auf `gpio`, `spi`, `i2c`.
 
+Der Installer ist für die Erstinstallation vorgesehen und verweigert den Austausch einer bereits installierten oder laufenden Steuerung. Spätere Anwendungsversionen installiert der Updater nach bestätigter Wartungssperre.
+
 Auf dem Pi:
 
 ```sh
@@ -57,11 +59,11 @@ journalctl -u sauna-controller -n 40 --no-pager
 systemctl status sauna-controller
 ```
 
-Konfiguration: `/etc/sauna/controller.toml`. Zugangsdaten: `/etc/sauna/mqtt.env`. Anwendung: `/opt/sauna/src`. Fehlerzustand: `/var/lib/sauna/fault.json`. Bediensocket: `/run/sauna/control.sock`, nur für den Dienstbenutzer zugänglich.
+Konfiguration: `/etc/sauna/controller.toml`. Laufzeitvariablen: `/etc/sauna/runtime.env`. Anwendung: `/opt/sauna/current/src`. Fehlerzustand: `/var/lib/sauna/fault.json`. Bediensocket: `/run/sauna/control.sock`, nur für den Dienstbenutzer und root zugänglich.
 
 ## Home Assistant
 
-Der konfigurierte Broker ist `192.168.2.49:1883`. Falls Mosquitto Authentifizierung verlangt, muss der Benutzer seine bestehenden MQTT-Zugangsdaten direkt auf dem Pi in `/etc/sauna/mqtt.env` eintragen:
+Die Brokerdaten und Zugangsdaten stehen in der ignorierten `.env`. Der Installer kopiert nur die benötigten Laufzeitvariablen nach `/etc/sauna/runtime.env`. Falls Mosquitto Authentifizierung verlangt, sind dort die bestehenden MQTT-Zugangsdaten einzutragen:
 
 ```text
 MQTT_USERNAME="bestehender-mqtt-benutzer"
@@ -69,6 +71,8 @@ MQTT_PASSWORD="bestehendes-mqtt-passwort"
 ```
 
 Die Datei ist nicht Teil eines Releases und darf nicht ins Repository. Bei Sonderzeichen die Regeln für systemd `EnvironmentFile` beachten. Danach `sudo systemctl restart sauna-controller` ausführen. Für einen unverschlüsselten lokalen Broker ist `tls = false` voreingestellt. Wenn der Broker TLS anbietet, `tls = true`, Port und gegebenenfalls `ca_file` passend setzen; Zertifikatsprüfung bleibt aktiv.
+
+`MQTT_HOST`, `MQTT_PORT`, `MQTT_TLS` und `MQTT_CA_FILE` aus der Umgebung überschreiben die TOML-Werte. Die `.env.example` darf versioniert werden; die echte `.env` einschließlich `RELEASE_SIGNING_KEY_B64` niemals. Der private Signierschlüssel bleibt auf dem Entwicklungsrechner und im entsprechenden GitHub-Actions-Secret. Der Pi bekommt nur den öffentlichen Prüfschlüssel.
 
 Home Assistant benötigt eine funktionierende MQTT-Integration mit aktivierter Discovery. Nach erfolgreicher Anmeldung erscheint ein Gerät „Sauna Controller“ mit den Entitäten. Die Climate-Entität zeigt PT100-Ist-/Solltemperatur. Banktemperatur und Feuchte erscheinen separat. Topic-Basis ist `sauna/saunapi`. Discovery liegt unter `homeassistant/…/saunapi/…/config`.
 

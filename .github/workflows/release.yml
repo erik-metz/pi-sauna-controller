@@ -15,14 +15,10 @@ jobs:
       - run: PYTHONPATH=src python -m unittest discover -s tests -v
       - name: Build and sign application
         env:
-          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+          RELEASE_SIGNING_KEY_B64: ${{ secrets.RELEASE_SIGNING_KEY_B64 }}
         run: |
           set -eu
-          umask 077
-          keyfile=$(mktemp)
-          trap 'rm -f "$keyfile"' EXIT
-          printf '%s\n' "$RELEASE_SIGNING_KEY" > "$keyfile"
-          python tools/build_release.py --key "$keyfile"
+          python tools/build_release.py
           python -c 'import json,os; m=json.load(open("dist/manifest.json")); assert m["tag"] == os.environ["GITHUB_REF_NAME"]'
           openssl dgst -sha256 -verify deploy/release-public.pem -signature dist/manifest.sig dist/manifest.json
       - name: Publish stable release

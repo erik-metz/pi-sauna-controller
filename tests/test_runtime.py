@@ -14,8 +14,10 @@ class RuntimeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="sauna-") as folder:
             # AF_UNIX paths on macOS are limited to 104 bytes, including long TMPDIRs.
             socket_path = f"/tmp/sauna-test-{os.getpid()}.sock"
+            marker = Path(folder) / "maintenance.json"
             args = [sys.executable, "-m", "sauna_controller.app", "--config", "config/simulation.toml",
-                    "--state-dir", folder, "--socket", socket_path]
+                    "--state-dir", folder, "--socket", socket_path,
+                    "--maintenance-file", str(marker)]
 
             def request(action, value=None):
                 with socket.socket(socket.AF_UNIX) as conn:
@@ -44,6 +46,22 @@ class RuntimeTests(unittest.TestCase):
                 state = request("status")["state"]
                 self.assertEqual(state["phase"], "PREHEAT")
                 self.assertTrue(state["heating_demand"])
+            finally:
+                proc.terminate()
+                proc.wait(timeout=5)
+                proc.stderr.close()
+
+            # Reboot during an update must preserve the durable maintenance lock.
+            marker.write_text('{}')
+            proc = spawn()
+            try:
+                self.assertEqual(request("status")["state"]["phase"], "MAINTENANCE")
+                self.assertFalse(request("arm")["ok"])
+                self.assertFalse(request("mode", "heat")["ok"])
+                marker.unlink()
+                time.sleep(0.2)
+                self.assertEqual(request("status")["state"]["phase"], "OFF")
+                self.assertFalse(request("mode", "heat")["ok"])
             finally:
                 proc.terminate()
                 proc.wait(timeout=5)
