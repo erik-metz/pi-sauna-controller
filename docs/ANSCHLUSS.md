@@ -1,6 +1,6 @@
 # Anschluss- und Verdrahtungsplan
 
-BCM ist die GPIO-Nummer im Programm. „Pin“ bezeichnet die physische Position am 40-poligen Header. Vor Verdrahtung die Orientierung des Headers prüfen. Der Plan beschreibt den Stand mit optionalen AHT21-Wandfühlern aus Software v0.3.0.
+BCM ist die GPIO-Nummer im Programm. „Pin“ bezeichnet die physische Position am 40-poligen Header. Vor Verdrahtung die Orientierung des Headers prüfen. Der Plan beschreibt den Stand mit optionalen AHT21-Wandfühlern aus Software v0.3.1.
 
 ## Übersicht
 
@@ -23,10 +23,11 @@ Die zwei I²C-Leitungen bilden einen gemeinsamen Bus: SHT41 und TCA9548A hängen
 |---|---:|---:|---|
 | Koppelrelais für K1 | 17 | 11 | Aktive Heizanforderung, standardmäßig HIGH |
 | Koppelrelais für K2 | 27 | 13 | Aktive Heizanforderung, standardmäßig HIGH |
-| Koppelrelais Aufgussventil | 16 | 36 | Ausgang vorgesehen, bleibt in der aktuellen Software AUS |
-| Koppelrelais Verdampfer-Nachfüllventil | 20 | 38 | Ausgang vorgesehen, bleibt in der aktuellen Software AUS |
+| Koppelrelais Aufgussventil | 14 | 8 | UART-TX-Pin; Ausgang vorgesehen, bleibt in der aktuellen Software AUS |
+| Koppelrelais Verdampfer-Nachfüllventil | 15 | 10 | UART-RX-Pin; Ausgang vorgesehen, bleibt in der aktuellen Software AUS |
 | Spiegelkontakt K1 | 22 | 15 | HIGH = Öffner geschlossen, K1 abgefallen |
-| Spiegelkontakt K2 | 23 | 16 | HIGH = Öffner geschlossen, K2 abgefallen |
+| Koppelrelais Reservekanal | 23 | 16 | Ausgang vorgesehen, bleibt in der aktuellen Software AUS |
+| Spiegelkontakt K2 | 26 | 37 | HIGH = Öffner geschlossen, K2 abgefallen |
 | MAX31865 MOSI / SDI | 10 | 19 | SPI0 MOSI |
 | MAX31865 MISO / SDO | 9 | 21 | SPI0 MISO |
 | MAX31865 CLK | 11 | 23 | SPI0 SCLK |
@@ -57,7 +58,7 @@ Der PT100 wird an den RTD-Klemmen des MAX31865 angeschlossen, nicht am GPIO. Sta
 
 Nur ein für die vorhandene 3,3-V-Logik geeignetes Modul verwenden. Pull-ups dürfen den Bus nicht auf 5 V ziehen. Bei langen Leitungen Buskapazität und Übertragung prüfen; gegebenenfalls geeignete Extender einsetzen. Der Sensorchip-Betriebsbereich gilt nicht automatisch für das ganze Breakout-Modul. Der Sensorheizer wird in V1 nicht eingeschaltet.
 
-## AHT21-Wandfühler (Software v0.3.0)
+## AHT21-Wandfühler (Software v0.3.1)
 
 Alle AHT21 antworten mit der festen Adresse `0x38`. Mehrere Module dürfen deshalb nicht direkt parallel an SDA/SCL liegen. Einen TCA9548A an denselben I²C1-Bus anschließen (Standardadresse `0x70`) und je einen AHT21 an einen eigenen Multiplexerkanal, zum Beispiel Kanal 0 und 1 für zwei Sensoren oder 0 bis 3 für vier. Für zwei Sensoren `/etc/sauna/controller.toml` auf `aht21_channels = [0, 1]` setzen; für vier Sensoren `aht21_channels = [0, 1, 2, 3]`. Die Multiplexeradresse ist standardmäßig `0x70` (Dezimalwert `112`). Nach der Änderung den Controller neu starten. Pro konfiguriertem Sensor erscheinen Temperatur-, Feuchte- und Taupunktsensoren in Home Assistant.
 
@@ -69,6 +70,8 @@ Der angezeigte Taupunkt wird aus Temperatur und relativer Feuchte am jeweiligen 
 
 GPIO18 steuert nur einen geeigneten Logikeingang eines LED-Treibers/MOSFET-Moduls. LED-Leistung über ein dafür ausgelegtes, abgesichertes 12-/24-V-System führen. Erst Spannung und Netzteil-/LED-Art bestätigen. V1 schaltet EIN/AUS. Im Überwachungsmodus sind sämtliche GPIO-Ausgänge, einschließlich Licht, unbenutzt.
 
-## Vorgesehene Wasser-Ausgänge
+## Vorgesehene Wasser- und Reserve-Ausgänge
 
-GPIO16 (Pin 36) ist für das Aufgussventil und GPIO20 (Pin 38) für das Nachfüllventil des Verdampfers reserviert. Beide werden bei Initialisierung ausgeschaltet und von der Regelsoftware dauerhaft ausgeschaltet gehalten. Sie sind noch nicht per Home Assistant schaltbar. Vor einer Aktivierung müssen Ventilspannung und Treiber feststehen sowie eine lokale, zeitbegrenzte Steuerung mit Füllstands-/Überfüllschutz und geeignetem Fehlerverhalten implementiert und geprüft sein. Die Ausgänge niemals direkt mit Ventilspulen verbinden.
+GPIO14 (Pin 8) ist für das Aufgussventil und GPIO15 (Pin 10) für das Nachfüllventil des Verdampfers reserviert. Diese Pins werden auch als UART TX/RX verwendet. Vor dem Anschluss müssen UART-Hardware und serielle Login-Konsole deaktiviert werden; sonst können Bootmeldungen, UART-Zugriff oder ein Konsolendienst die Relaisausgänge stören. In `raspi-config` unter „Interface Options → Serial Port“ Login-Shell über seriell **und** serielle Hardware deaktivieren. Das passt auch dazu, dass die Pins hier als GPIO-Ausgänge genutzt werden. Die Koppelstufen müssen außerdem hardwareseitig AUS bleiben, solange der Pi startet oder die GPIOs noch nicht initialisiert sind.
+
+Der sechste Kanal GPIO23 (Pin 16) ist als Reserve vorgesehen. Alle drei Ausgänge werden in der aktuellen Software dauerhaft AUS gehalten und sind noch nicht per Home Assistant schaltbar. Vor einer Aktivierung der Ventilausgänge müssen Ventilspannung und Treiber feststehen sowie eine lokale, zeitbegrenzte Steuerung mit Füllstands-/Überfüllschutz und geeignetem Fehlerverhalten implementiert und geprüft sein. Die Ausgänge niemals direkt mit Ventilspulen verbinden.

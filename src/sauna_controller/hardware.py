@@ -204,9 +204,10 @@ class GPIO:
         self.outputs = {}
         self.inputs = {}
         try:
-            for name in ("k1", "k2", "light", "aufguss_valve", "evaporator_fill_valve", "heartbeat"):
+            for name in ("k1", "k2", "light", "aufguss_valve", "evaporator_fill_valve",
+                         "reserve_relay", "heartbeat"):
                 active_high = cfg.relay_active_high if name in {
-                    "k1", "k2", "aufguss_valve", "evaporator_fill_valve"
+                    "k1", "k2", "aufguss_valve", "evaporator_fill_valve", "reserve_relay"
                 } else True
                 device = OutputDevice(cfg.pins[name], active_high=active_high,
                                       initial_value=False, pin_factory=self.factory)
@@ -229,9 +230,10 @@ class GPIO:
         self.outputs["k1"].value = heating
         self.outputs["k2"].value = heating
         self.outputs["light"].value = light
-        # Water actuators stay physically OFF until bounded local control is implemented.
+        # Unconfigured water and reserve actuators stay physically OFF.
         self.outputs["aufguss_valve"].off()
         self.outputs["evaporator_fill_valve"].off()
+        self.outputs["reserve_relay"].off()
         self.outputs["heartbeat"].value = heartbeat
 
     def close(self):
