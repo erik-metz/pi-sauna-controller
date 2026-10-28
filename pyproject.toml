@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sauna-controller"
+version = "0.2.0"
+description = "Local sauna controller with fail-off operation and Home Assistant MQTT discovery"
+requires-python = ">=3.11"
+dependencies = ["paho-mqtt>=2.0,<3"]
+
+[project.optional-dependencies]
+hardware = ["gpiozero>=2,<3", "spidev>=3.6,<4", "smbus2>=0.4,<1"]
+
+[project.scripts]
+sauna-controller = "sauna_controller.app:main"
+saunactl = "sauna_controller.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

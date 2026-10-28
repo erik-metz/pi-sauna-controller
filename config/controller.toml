@@ -1,0 +1,59 @@
+# Commissioning defaults. No GPIO outputs are opened in monitor mode.
+device_id = "saunapi"
+mode = "monitor"
+heating_enabled = false
+safety_verified = false
+sensors_enabled = true
+
+# Example PT100 control temperatures, NOT approved hardware limits.
+target = 70.0
+min_target = 30.0
+max_target = 100.0
+high_limit = 110.0
+hysteresis = 4.0
+min_off_seconds = 30.0
+max_session_seconds = 7200.0
+max_preheat_seconds = 3600.0
+sensor_max_age = 3.0
+feedback_timeout = 1.0
+arm_seconds = 60.0
+
+# Verify actual module reference resistor and PT100 wiring before use.
+rtd_wires = 4
+rtd_nominal = 100.0
+rtd_reference = 430.0
+spi_bus = 0
+spi_device = 0
+i2c_bus = 1
+i2c_address = 68
+relay_active_high = true
+
+mqtt_enabled = true
+# Local address and credentials are loaded from ignored .env / /etc/sauna/runtime.env.
+host = "homeassistant.local"
+port = 1883
+tls = false
+ca_file = ""
+
+[pins]
+k1 = 17
+k2 = 27
+feedback1 = 22
+feedback2 = 23
+light = 18
+heartbeat = 24
+safety = 25
+arm = 5
+door = 6
+
+[profiles.sanft]
+target = 60.0
+hold_seconds = 1800.0
+
+[profiles.standard]
+target = 70.0
+hold_seconds = 1800.0
+
+[profiles.heiss]
+target = 85.0
+hold_seconds = 1800.0

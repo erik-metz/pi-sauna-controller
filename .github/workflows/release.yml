@@ -1,0 +1,32 @@
+name: Publish signed release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: PYTHONPATH=src python -m unittest discover -s tests -v
+      - name: Build and sign application
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+        run: |
+          set -eu
+          umask 077
+          keyfile=$(mktemp)
+          trap 'rm -f "$keyfile"' EXIT
+          printf '%s\n' "$RELEASE_SIGNING_KEY" > "$keyfile"
+          python tools/build_release.py --key "$keyfile"
+          python -c 'import json,os; m=json.load(open("dist/manifest.json")); assert m["tag"] == os.environ["GITHUB_REF_NAME"]'
+          openssl dgst -sha256 -verify deploy/release-public.pem -signature dist/manifest.sig dist/manifest.json
+      - name: Publish stable release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/sauna-controller.tar.gz dist/manifest.json dist/manifest.sig --verify-tag --title "Sauna Controller $GITHUB_REF_NAME" --generate-notes

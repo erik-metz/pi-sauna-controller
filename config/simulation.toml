@@ -1,0 +1,5 @@
+device_id = "saunapi_sim"
+mode = "simulation"
+sensors_enabled = false
+mqtt_enabled = false
+min_off_seconds = 1.0

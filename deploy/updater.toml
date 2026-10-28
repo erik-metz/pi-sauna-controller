@@ -1,0 +1,8 @@
+# Poll only published stable releases of this repository, never arbitrary branch code.
+repository = "erik-metz/pi-sauna-controller"
+public_key = "/etc/sauna/release-public.pem"
+user = "alpha"
+root = "/opt/sauna"
+state_dir = "/var/lib/sauna-updater"
+controller_socket = "/run/sauna/control.sock"
+controller_config = "/etc/sauna/controller.toml"

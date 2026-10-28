@@ -1,0 +1,37 @@
+[Unit]
+Description=Sauna controller (local regulation and Home Assistant MQTT)
+After=network.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=notify
+User=@USER@
+Group=@GROUP@
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+EnvironmentFile=-/etc/sauna/mqtt.env
+EnvironmentFile=-/etc/sauna/runtime.env
+WorkingDirectory=/opt/sauna
+ExecStart=/opt/sauna/venv/bin/python -m sauna_controller.app
+Restart=on-failure
+RestartSec=5
+WatchdogSec=10
+TimeoutStopSec=6
+RuntimeDirectory=sauna
+RuntimeDirectoryMode=0700
+StateDirectory=sauna
+StateDirectoryMode=0700
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

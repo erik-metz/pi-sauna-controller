@@ -1,0 +1,21 @@
+[Unit]
+Description=Install signed GitHub releases of the sauna controller when idle
+Wants=network-online.target
+After=network-online.target sauna-controller.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/sauna/runtime.env
+ExecStart=/usr/bin/python3 /opt/sauna/updater/updater.py --config /etc/sauna/updater.toml
+TimeoutStartSec=240
+UMask=0022
+NoNewPrivileges=true
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+# Runs as root to exchange root-owned release directories and restart the daemon.
+# It executes candidate Python checks only after dropping to the controller user.

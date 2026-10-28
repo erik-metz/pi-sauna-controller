@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+dist/
+*.egg-info/
+*.env
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+!deploy/release-public.pem
+fault.json
+.release-secrets/
