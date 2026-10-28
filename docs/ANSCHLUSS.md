@@ -23,6 +23,8 @@ Die zwei I²C-Leitungen bilden einen gemeinsamen Bus: SHT41 und TCA9548A hängen
 |---|---:|---:|---|
 | Koppelrelais für K1 | 17 | 11 | Aktive Heizanforderung, standardmäßig HIGH |
 | Koppelrelais für K2 | 27 | 13 | Aktive Heizanforderung, standardmäßig HIGH |
+| Koppelrelais Aufgussventil | 16 | 36 | Ausgang vorgesehen, bleibt in der aktuellen Software AUS |
+| Koppelrelais Verdampfer-Nachfüllventil | 20 | 38 | Ausgang vorgesehen, bleibt in der aktuellen Software AUS |
 | Spiegelkontakt K1 | 22 | 15 | HIGH = Öffner geschlossen, K1 abgefallen |
 | Spiegelkontakt K2 | 23 | 16 | HIGH = Öffner geschlossen, K2 abgefallen |
 | MAX31865 MOSI / SDI | 10 | 19 | SPI0 MOSI |
@@ -66,3 +68,7 @@ Der angezeigte Taupunkt wird aus Temperatur und relativer Feuchte am jeweiligen 
 ## Banklicht
 
 GPIO18 steuert nur einen geeigneten Logikeingang eines LED-Treibers/MOSFET-Moduls. LED-Leistung über ein dafür ausgelegtes, abgesichertes 12-/24-V-System führen. Erst Spannung und Netzteil-/LED-Art bestätigen. V1 schaltet EIN/AUS. Im Überwachungsmodus sind sämtliche GPIO-Ausgänge, einschließlich Licht, unbenutzt.
+
+## Vorgesehene Wasser-Ausgänge
+
+GPIO16 (Pin 36) ist für das Aufgussventil und GPIO20 (Pin 38) für das Nachfüllventil des Verdampfers reserviert. Beide werden bei Initialisierung ausgeschaltet und von der Regelsoftware dauerhaft ausgeschaltet gehalten. Sie sind noch nicht per Home Assistant schaltbar. Vor einer Aktivierung müssen Ventilspannung und Treiber feststehen sowie eine lokale, zeitbegrenzte Steuerung mit Füllstands-/Überfüllschutz und geeignetem Fehlerverhalten implementiert und geprüft sein. Die Ausgänge niemals direkt mit Ventilspulen verbinden.

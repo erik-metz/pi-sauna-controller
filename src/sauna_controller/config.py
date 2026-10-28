@@ -43,7 +43,8 @@ class Config:
     mqtt_enabled: bool = True
     pins: dict = field(default_factory=lambda: {
         "k1": 17, "k2": 27, "feedback1": 22, "feedback2": 23,
-        "light": 18, "heartbeat": 24, "safety": 25, "arm": 5, "door": 6,
+        "light": 18, "aufguss_valve": 16, "evaporator_fill_valve": 20,
+        "heartbeat": 24, "safety": 25, "arm": 5, "door": 6,
     })
     profiles: dict = field(default_factory=lambda: {
         "sanft": {"target": 60.0, "hold_seconds": 1800.0},
@@ -106,7 +107,8 @@ class Config:
             raise ValueError("AHT21 channels must be unique TCA9548A channels from 0 to 7")
         if type(self.aht21_mux_address) is not int or not 0x70 <= self.aht21_mux_address <= 0x77:
             raise ValueError("TCA9548A address must be from 0x70 to 0x77")
-        expected = {"k1", "k2", "feedback1", "feedback2", "light", "heartbeat", "safety", "arm", "door"}
+        expected = {"k1", "k2", "feedback1", "feedback2", "light", "aufguss_valve",
+                    "evaporator_fill_valve", "heartbeat", "safety", "arm", "door"}
         if set(self.pins) != expected or len(set(self.pins.values())) != len(expected):
             raise ValueError("GPIO assignments must be complete and unique")
         if any(type(p) is not int or not 4 <= p <= 27 or p in {7, 8, 9, 10, 11}
